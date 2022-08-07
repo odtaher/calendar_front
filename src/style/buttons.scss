@@ -1,0 +1,30 @@
+
+button {
+  color: white;
+  border-radius: 5px;
+  -moz-border-radius: 5px;
+  cursor: pointer;
+  padding: 3px 8px;
+}
+
+button.active {
+  background-color: #bdc1be!important;
+  color: black;
+  border: 1px solid;
+}
+
+button.blue {
+  background-color: #303E4E;
+}
+
+button.blue:hover {
+  background-color: #415367;
+}
+
+button.light-blue {
+  background-color: #78828D;
+}
+
+button.light-blue:hover {
+  background-color: #415367;
+}
