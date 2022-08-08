@@ -2,10 +2,10 @@
   <header>
     <div class="nav-buttons-container">
       <div class="nav-buttons">
-        <button @click="$emit('next')" class="blue nav-next">
+        <button @click="$emit('prev')" class="blue nav-previous">
           &lt;
         </button>
-        <button @click="$emit('prev')" class="blue nav-previous">
+        <button @click="$emit('next')" class="blue nav-next">
           &gt;
         </button>
       </div>

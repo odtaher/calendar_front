@@ -1,5 +1,6 @@
 <template>
-  <div></div>
+  <div class="grid-container day-view">
+  </div>
 </template>
 
 <script>

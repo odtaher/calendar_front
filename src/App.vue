@@ -16,6 +16,11 @@ export default {
   },
   components: {
     'events-calendar': EventsCalendar,
+  },
+  methods: {
+    intWithLeadingZero(value) {
+      return value > "9" ? value : "0" + value;
+    }
   }
 }
 
