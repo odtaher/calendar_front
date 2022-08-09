@@ -1,4 +1,3 @@
-
 $border-radius: 6px;
 
 @mixin text-overflow {
@@ -6,4 +5,19 @@ $border-radius: 6px;
   text-overflow: ellipsis;
   white-space: nowrap;
   width: 100%;
+}
+
+
+@mixin modal {
+  position: absolute;
+  border: 1px solid $border-color;
+  background-color: $button-blue;
+  border-radius: $border-radius;
+  color: white;
+  width: 40%;
+  height: 240px;
+  padding: 12px;
+  text-align: left;
+
+  max-width: 430px;
 }

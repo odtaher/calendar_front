@@ -1,6 +1,6 @@
 <template>
   <div class="grid-container month-view">
-    <div v-for="day in lastDayOfMonth" :key="day">
+    <div v-for="day in lastDayOfMonth.getDate()" :key="day">
       <div class="day-number">
         {{ day }}
       </div>
@@ -36,9 +36,15 @@ export default {
     },
   },
   computed: {
+    month() {
+      return this.lastDayOfMonth.getMonth()+1;
+    },
+    year() {
+      return this.lastDayOfMonth.getFullYear();
+    },
     lastDayOfMonth() {
-      const month = new Date(this.year, this.month, 0);
-      return month.getDate();
+      const month = new Date(this.selectedDate.getFullYear(), this.selectedDate.getMonth()+1, 0);
+      return month;
     },
     firstDayOfMonth() {
       return new Date(this.year, this.month - 1, 0);
@@ -50,9 +56,6 @@ export default {
 
   data() {
     return {
-
-      year: (new Date()).getFullYear(),
-      month: (new Date()).getMonth() + 1,
     }
   },
 }

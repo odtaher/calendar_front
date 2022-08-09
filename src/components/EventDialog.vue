@@ -1,226 +1,65 @@
 <template>
-  <div v-show="isOpen" class="event-dialog">
+  <dialog-component :ignore-close-for-classes="['dialog', 'time-block']" ref="dialog" class="show-event-dialog">
 
-    <input @keyup="validate" type="text" placeholder="The task description..." v-model="newEvent.description"/>
-    <span class="error" v-if="errors.description">{{ errors.description }}</span>
-    <div class="event-details">
-      <div>
-        <label>Date:</label>
-        <datepicker @change="validate" v-model="newEvent.date"></datepicker>
+    <div v-if="calendarEvent">
+      <button class="delete" @click="deleteEvent(calendarEvent)">Delete</button>
+      {{ calendarEvent.description }}
+      <hr/>
+      <div class="event-details">
+        <span>{{ calendarEvent.start }}</span>
       </div>
-      <div class="error" v-if="errors.date">
-        <span>{{ errors.date }}</span>
-      </div>
-      <div>
-        <label>From time</label>
-        <select @change="validate" v-model="newEvent.from_time">
-          <option :key="timeIndex" v-for="timeIndex in 48">{{ $root.helper.timeByIndex(timeIndex) }}</option>
-        </select>
-      </div>
-      <div class="error" v-if="errors.from_time">
-        <span>{{ errors.from_time }}</span>
-      </div>
-      <div>
-        <label>To time</label>
-        <select @change="validate" v-model="newEvent.to_time">
-          <option v-show="showToTime(timeIndex)" :key="timeIndex" v-for="timeIndex in 48">{{ $root.helper.timeByIndex(timeIndex) }}</option>
-        </select>
-      </div>
-      <div class="error" v-if="errors.to_time">
-        <span>{{ errors.to_time }}</span>
-      </div>
-
-
-    </div>
-    <div>
-      <button :disabled="saveButtonDisabled" @click="save" class="blue">Save</button>
-      <button @click="close" class="blue">Cancel</button>
-      <div class="error" v-if="errors.server">
-        <span>{{ errors.server }}</span>
+      <div class="event-details">
+        <span>Duration:</span> <span>{{ calendarEvent.duration }} min</span>
       </div>
     </div>
-
-  </div>
+  </dialog-component>
 </template>
-
 <style lang="scss">
+.show-event-dialog {
+  height: auto !important;
+  width: auto !important;
 
-@import "../style/colors";
-@import "../style/layout";
-
-.event-dialog {
-
-  .error {
-    text-align: left;
-    color: red;
-
-    span {
-      color: red;
-    }
-  }
-
-  position: absolute;
-  border: 1px solid $border-color;
-  background-color: $button-blue;
-  border-radius: $border-radius;
-  color: white;
-  width: 40%;
-  height: 240px;
-  padding: 12px;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  max-width: 430px;
-
-  > div.date-and-time {
+  .event-details {
     display: flex;
-    justify-content: space-between;
-  }
-
-  > div.event-details {
-    display: flex;
-    justify-content: space-evenly;
     flex-direction: column;
-    height: 100%;
   }
 
-
-  > div.event-details > div {
-    display: flex;
-    justify-content: flex-start;
-    width: 100%;
-
-    label {
-      width: 20%;
-    }
-
+  .delete {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    color: red;
   }
 }
-
 </style>
-
-
 <script>
-
-import Datepicker from 'vue3-datepicker'
+import DialogComponent from "@/dialogs/DialogComponent";
 
 export default {
-  name: "event-dialog",
-  components: {Datepicker},
+  name: "new-event-dialog",
+  components: {DialogComponent},
   methods: {
-    showToTime(timeIndex) {
-      return this.newEvent.from_time?.length && this.$root.helper.eventDuration(this.newEvent.from_time, this.$root.helper.timeByIndex(timeIndex)) > 0;
-    },
-    open(position, date, time) {
-      if (date) {
-        this.newEvent.date = new Date(date);
-      }
-      if (time) {
-        this.newEvent.from_time = time;
-      }
-      this.$el.style.top = position.top + "px";
-      this.$el.style.left = position.left + "px";
-      this.isOpen = true;
-
-      this.listenForOuterClicks();
-    },
-    listenForOuterClicks() {
-      const callback = (ev) => {
-
-        let node = ev.target;
-        if (node.classList.contains("new-event")) {
-          return;
-        }
-        while (node) {
-          if (node.classList?.contains('event-dialog')) {
-            return;
-          }
-          node = node.parentNode;
-        }
-        document.body.removeEventListener('click', callback);
+    deleteEvent(calendarEvent) {
+      if (confirm("Sure?")) {
         this.close();
+        this.$emit("deleteEvent", calendarEvent._id);
       }
-      document.body.addEventListener('click', callback);
     },
+    open(event, calendarEvent) {
+      this.$refs.dialog.open(event);
+      this.calendarEvent = calendarEvent;
+      this.$forceUpdate();
+    },
+
     close() {
-      this.clear();
-      this.isOpen = false;
+      this.$refs.dialog.close();
     },
-    clear() {
-      this.newEvent = {
-        date: null,
-        from_time: null,
-        to_time: null,
-        description: null,
-      };
-    },
-    save() {
-      if (this.validate()) {
-        this.$emit("newEvent", this.newEvent);
-      }
-    },
-    validate() {
-      let valid = true;
-      if (!this.newEvent.description?.trim().length) {
-        this.errors.description = "Description is required";
-        valid = false;
-      } else {
-        this.errors.description = "";
-      }
-      if (!this.newEvent.from_time) {
-        valid = false;
-        this.errors.from_time = "From Time is required";
-      } else {
-        this.errors.from_time = "";
-      }
-      if (!this.newEvent.date) {
-        valid = false;
-        this.errors.date = "Date is required";
-      } else {
-        this.errors.date = "";
-      }
-      if (!this.newEvent.to_time) {
-        valid = false;
-        this.errors.to_time = "To Time is required";
-      } else {
-        this.errors.to_time = "";
-      }
-      if (valid && !this.validateTimes()) {
-        this.errors.to_time = "To Time has to be later than From Time";
-        valid = false;
-      }
 
-      this.saveButtonDisabled = !valid;
-
-      return valid;
-    },
-    validateTimes() {
-      const fromHour = parseInt(this.newEvent.from_time.split(":")[0]);
-      const toHour = parseInt(this.newEvent.to_time.split(":")[0]);
-      if (fromHour > toHour) {
-        return false;
-      }
-      if (fromHour === toHour) {
-        const fromMin = parseInt(this.newEvent.from_time.split(":")[1]);
-        const toMin = parseInt(this.newEvent.to_time.split(":")[1]);
-        return fromMin < toMin;
-      }
-      return true;
-
-    }
   },
 
   data() {
     return {
-      errors: {},
-      newEvent: {
-        date: null,
-        from_time: null,
-        to_time: null,
-        description: null,
-      },
-      saveButtonDisabled: false,
-      isOpen: false
+      calendarEvent: null
     }
   }
 }

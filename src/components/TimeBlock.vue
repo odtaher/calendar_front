@@ -80,6 +80,7 @@ export default {
     }
   },
   props: {
+    debug: String,
     date: String,
     time: String,
     calendarEvent: {

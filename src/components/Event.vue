@@ -1,15 +1,20 @@
 <template>
-  <div class="event">
+  <div class="event" @click="$root.$refs.eventsCalendar.openEventDialog($event, eventData)">
     <span class="time" v-if="showTime">{{eventData.time}}</span>
     <span >{{eventData.description}}</span>
   </div>
 </template>
 
 <style lang="scss" scoped>
+@import "./src/style/colors";
 .event {
   height: 100%;
   background-color: beige;
   border: 1px solid #333;
+}
+
+.event:hover {
+  border: 1px solid $button-blue;
 }
 </style>
 
