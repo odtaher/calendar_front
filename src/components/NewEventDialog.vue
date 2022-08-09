@@ -69,6 +69,7 @@
 
     label {
       width: 20%;
+      min-width: 100px;
     }
 
   }

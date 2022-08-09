@@ -1,5 +1,5 @@
 <template>
-  <div @dragover.prevent @drop="eventDropped($event, {date:date, time:time})" class="time-block" v-show="calendarEvent === null || !calendarEvent.hidden">
+  <div :class="{'active': beingDraggedOver}" @dragleave.prevent="beingDraggedOver=false" @dragover.prevent="beingDraggedOver=true" @drop="eventDropped($event, {date:date, time:time})" class="time-block" v-show="calendarEvent === null || !calendarEvent.hidden">
     <button v-if="!calendarEvent" @click="(ev) => { $root.$refs.eventsCalendar.openNewEventDialog(ev, date, time)}"
             class="blue new-event">
       +
@@ -55,6 +55,13 @@ export default {
     this.updateBasis();
   },
   methods: {
+    eventDraggedOver(event, evenDate) {
+
+      console.info(event, evenDate)
+      // document.querySelectorAll(`time-block-${evenDate.date}${evenDate.time}`).forEach( timeBlock => {
+      //   timeBlock.classList
+      // })
+    },
     eventDropped(ev, destinationTimeBlock) {
       // emitting to WeekView component, so we can use the callback in EventsCalendar component
       this.$parent.$parent.$emit("move", ev.dataTransfer.getData('eventId'), destinationTimeBlock);
@@ -76,6 +83,7 @@ export default {
   },
   data() {
     return {
+      beingDraggedOver: false,
       rows: 1,
     }
   },

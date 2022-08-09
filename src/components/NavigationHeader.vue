@@ -12,8 +12,11 @@
       <button @click="$emit('today')" class="light-blue nav-next">Today</button>
     </div>
 
-    <div class="date-range" v-if="$parent.fromDate">
+    <div class="date-range" v-if="['month', 'week'].indexOf($parent.fromDate && $parent.viewType)>-1">
       <b> {{ dateFormatForTitle($parent.fromDate) }} - {{ dateFormatForTitle($parent.toDate ) }}</b>
+    </div>
+    <div class="date-range" v-if="$parent.fromDate && $parent.viewType === 'day'">
+      <b> {{ dateFormatForTitle($parent.fromDate) }} </b>
     </div>
 
     <div class="view-types">

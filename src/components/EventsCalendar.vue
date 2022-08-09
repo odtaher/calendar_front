@@ -159,6 +159,11 @@ export default {
 
           this.eventsData[event.date].set(timeBlockStr, event);
 
+          // grid flex basis does not reset automatically, so we do it manually
+          document.querySelectorAll(".time-block").forEach( timeBlock => {
+            timeBlock.style.flexBasis = "40px";
+          });
+
           this.fillTimeBlocksForLongEvents(start, event);
         });
 
@@ -177,6 +182,7 @@ export default {
      * @param event
      */
     fillTimeBlocksForLongEvents(start, event) {
+
       for (let timeBlock = 30; timeBlock < event.duration; timeBlock += 30) {
         start.setMinutes(start.getMinutes() + timeBlock);
         const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.helper.intWithLeadingZero).join(":");
@@ -200,6 +206,9 @@ export default {
       }
       if (this.viewType === 'week') {
         this.selectedDate.setDate(this.selectedDate.getDate() + (direction === 'next' ? 7 : -7));
+      }
+      if (this.viewType === 'day') {
+        this.selectedDate.setDate(this.selectedDate.getDate() + (direction === 'next' ? 1 : -1));
       }
       this.selectedDate = new Date(this.selectedDate);
       this.updateRange();
@@ -244,11 +253,17 @@ export default {
   margin-bottom: 12px;
 }
 
+.view-types, .nav-buttons {
+  button {
+    padding: 6px 12px;
+  }
+}
 
 .view-types {
-  min-width: 220px;
+  min-width: 300px;
   display: flex;
   justify-content: space-between;
+
 }
 
 .grid-container {
