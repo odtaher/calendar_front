@@ -1,1 +1,9 @@
 
+$border-radius: 6px;
+
+@mixin text-overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}

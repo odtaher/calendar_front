@@ -1,6 +1,7 @@
 <template>
   <div class="event">
-    {{eventData.description}}
+    <span class="time" v-if="showTime">{{eventData.time}}</span>
+    <span >{{eventData.description}}</span>
   </div>
 </template>
 
@@ -16,11 +17,14 @@
 export default {
   name: 'calendar-event',
   mounted() {
-    Object.keys(this.eventData).forEach ( key => {
+
+    Object.keys(this.eventData).forEach(key => {
       this.$data[key] = this.eventData[key];
     });
     this.start = new Date(this.eventData.start);
-
+    if (this.$parent.updateBasis) {
+      this.$parent.updateBasis();
+    }
   },
   data() {
     return {
@@ -31,6 +35,10 @@ export default {
     }
   },
   props: {
+    showTime: {
+      type: Boolean,
+      default: false
+    },
     eventData: Object,
   },
 }

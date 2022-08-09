@@ -8,19 +8,23 @@
 
 <script>
 import EventsCalendar from "@/components/EventsCalendar";
+import Helper from './Helper.js';
 
 export default {
   name: "App",
   props: {
     msg: String
   },
+  data() {
+    return {
+      helper: new Helper()
+    }
+  },
   components: {
     'events-calendar': EventsCalendar,
   },
   methods: {
-    intWithLeadingZero(value) {
-      return value > "9" ? value : "0" + value;
-    }
+
   }
 }
 
@@ -31,6 +35,7 @@ export default {
 
 @import "style/buttons.scss";
 @import "style/layout.scss";
+@import "style/colors.scss";
 
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;

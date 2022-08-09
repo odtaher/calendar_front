@@ -4,12 +4,15 @@
     <navigation-header
         @prev="browse('prev')"
         @next="browse('next')"
+        @today="browseToToday"
         ref="navigationHeader">
     </navigation-header>
 
-    <month-view v-if="viewType=='month'"></month-view>
-    <week-view :selected-date="selectedDate" v-if="viewType=='week'"></week-view>
-    <day-view v-if="viewType=='day'"></day-view>
+    <month-view v-if="viewType=='month'" :selected-date="selectedDate"></month-view>
+    <week-view @move="eventMoved" ref="weekView" v-if="viewType=='week'" :selected-date="selectedDate"></week-view>
+    <day-view v-if="viewType=='day'" :selected-date="selectedDate"></day-view>
+
+    <event-dialog @newEvent="saveNewEvent" ref="eventDialog"></event-dialog>
   </div>
 </template>
 
@@ -20,10 +23,11 @@ import DayView from "@/components/view_types/DayView";
 import NavigationHeader from "@/components/NavigationHeader";
 import moment from "moment";
 import Config from '@/Config';
+import EventDialog from "@/components/EventDialog";
 
 export default {
   name: "events-calendar",
-  components: {MonthView, WeekView, DayView, NavigationHeader},
+  components: {MonthView, WeekView, DayView, NavigationHeader, EventDialog},
   props: {
     msg: String
   },
@@ -41,11 +45,89 @@ export default {
   },
   methods: {
 
+    eventMoved(eventId, destination) {
+      const dateSplits = destination.date.split("-");
+      const timeSplits = destination.time.split(":");
+      const destinationTime = new Date(dateSplits[0], parseInt(dateSplits[1])-1, dateSplits[2], timeSplits[0], timeSplits[1]);
+
+      const postDataStr = this.$root.helper.dictionaryToPostData({
+        start: moment(destinationTime).format("YYYY-MM-DD HH:mm:00"),
+      });
+      fetch(`${Config.api_host}/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: postDataStr
+      }).then(async response => {
+        const jsonResponse = await response.json();
+        if (!jsonResponse.ok) {
+          // @todo show error
+          return;
+        }
+
+
+        // @todo show success message
+        this.fetchEvents();
+      })
+    },
+    saveNewEvent(newEvent) {
+
+      let start = new Date(newEvent.date);
+      start.setHours(parseInt(newEvent.from_time.split(":")[0]));
+      start.setMinutes(parseInt(newEvent.from_time.split(":")[1]));
+
+      start.setHours(start.getUTCHours()); // convert to utc before storing
+
+      const postDataStr = this.$root.helper.dictionaryToPostData({
+        start: moment(start).format("YYYY-MM-DD HH:mm:00"),
+        description: newEvent.description,
+        duration: this.$root.helper.eventDuration(newEvent.from_time, newEvent.to_time)
+      });
+
+      fetch(`${Config.api_host}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: postDataStr
+      }).then(async response => {
+        const jsonResponse = await response.json();
+        if (!jsonResponse.ok) {
+          this.$refs.eventDialog.errors.server = jsonResponse.error;
+          this.$refs.eventDialog.$forceUpdate();
+          return;
+        }
+
+        this.$refs.eventDialog.close();
+        this.fetchEvents();
+
+      })
+
+    },
+
+    openNewEventDialog(event, date, time) {
+      let pageX = event.pageX;
+      let pageY = event.pageY;
+      const dialogComponent = this.$refs.eventDialog;
+      const dialogWidth = dialogComponent.clientWidth ? dialogComponent.clientWidth : 600;
+      const dialogHeight = dialogComponent.clientHeight ? dialogComponent.clientHeight : 420;
+      console.info(dialogWidth, dialogHeight);
+      if (pageX + dialogWidth > document.body.clientWidth) {
+        pageX = document.body.clientWidth - dialogWidth;
+      }
+      if (pageY + dialogHeight > window.outerHeight) {
+        pageY = document.body.clientHeight - dialogHeight;
+      }
+      pageY += 20;
+      this.$refs.eventDialog.open({top: pageY, left: pageX}, date, time);
+    },
+
     fetchEvents() {
 
       const month = [
         this.selectedDate.getFullYear(),
-        this.$root.intWithLeadingZero(this.selectedDate.getMonth() + 1)
+        this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
       ].join("-")
 
       fetch(`${Config.api_host}/events?month=${month}`).then(async response => {
@@ -56,32 +138,31 @@ export default {
 
         const jsonResponse = await response.json();
 
-        console.info("response", jsonResponse);
-
         jsonResponse.events.forEach(event => {
           if (this.eventsData[event.date] === undefined) {
             this.eventsData[event.date] = new Map();
           }
           const start = new Date(event.start);
-          if (start.getMinutes() < 30) {
-            start.setMinutes(0);
-          } else {
-            start.setMinutes(30);
-          }
 
-          const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.intWithLeadingZero).join(":");
+          const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.helper.intWithLeadingZero).join(":");
           this.eventsData[event.date].set(timeBlockStr, event);
 
-          for (let timeBlock = 30; timeBlock < event.duration; timeBlock += 30) {
-            start.setMinutes(start.getMinutes() + timeBlock);
-            const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.intWithLeadingZero).join(":");
-            this.eventsData[event.date].set(timeBlockStr, {...{hidden: true}, ...event});
-          }
-
+          this.expandLongEvents(start, event);
         });
+
+        this.$forceUpdate();
+
+
       }, error => {
         this.flashErrors([error]);
       });
+    },
+    expandLongEvents(start, event) {
+      for (let timeBlock = 30; timeBlock < event.duration; timeBlock += 30) {
+        start.setMinutes(start.getMinutes() + timeBlock);
+        const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.helper.intWithLeadingZero).join(":");
+        this.eventsData[event.date].set(timeBlockStr, {...{hidden: true}, ...event});
+      }
     },
     flashErrors(errors) {
       errors;
@@ -89,6 +170,10 @@ export default {
     updateRange() {
       this.fromDate = moment(this.selectedDate).startOf(this.viewType).toDate();
       this.toDate = moment(this.selectedDate).endOf(this.viewType).toDate();
+    },
+    browseToToday() {
+      this.selectedDate = new Date();
+      this.updateRange();
     },
     browse(direction) {
       if (this.viewType === 'month') {
