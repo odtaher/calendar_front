@@ -12,7 +12,8 @@
     </navigation-header>
 
     <month-view v-if="viewType==='month'" :selected-date="selectedDate"></month-view>
-    <week-view @error="(err) => this.error = err" @move="eventMoved" ref="weekView" v-if="viewType==='week'" :selected-date="selectedDate"></week-view>
+    <week-view @error="(err) => this.error = err" @move="eventMoved" ref="weekView" v-if="viewType==='week'"
+               :selected-date="selectedDate"></week-view>
     <day-view v-if="viewType==='day'" :selected-date="selectedDate"></day-view>
 
     <new-event-dialog @newEvent="eventAdded" ref="newEventDialog"></new-event-dialog>
@@ -42,12 +43,22 @@ export default {
     msg: String
   },
   mounted() {
+    const storedViewType = localStorage.getItem('viewType');
+    if (storedViewType) {
+      this.viewType = storedViewType;
+    }
+    const selectedDate = localStorage.getItem('selectedDate');
+    if (selectedDate) {
+      this.selectedDate = new Date(selectedDate);
+    }
     this.updateRange();
     this.fetchEvents();
   },
   watch: {
     viewType() {
       this.selectedDate = moment(this.selectedDate).startOf(this.viewType).toDate();
+
+      this.saveSelectionToLocalStorage();
     },
     selectedDate() {
       this.updateRange();
@@ -57,7 +68,7 @@ export default {
 
     cleanGrid() {
       // grid flex basis does not reset automatically, so we do it manually
-      document.querySelectorAll(".time-block").forEach( timeBlock => {
+      document.querySelectorAll(".time-block").forEach(timeBlock => {
         timeBlock.style.flexBasis = "40px";
         timeBlock.classList.remove("active");
       });
@@ -149,15 +160,14 @@ export default {
         this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
       ].join("-")
 
-      fetch(`${Config.api_host}/events?month=${month}`).then(async response => {
+      fetch(`${Config.api_host}/events?month=${month}`, {
+        cache: clearEventsData ? "no-cache" : "force-cache"
+      }).then(async response => {
         if (!response.ok) {
           this.showError(response.errors);
           return;
         }
 
-        if (clearEventsData) {
-          this.eventsData = {};
-        }
         this.eventsData = {};
 
         const jsonResponse = await response.json();
@@ -206,6 +216,12 @@ export default {
     browseToToday() {
       this.selectedDate = new Date();
       this.updateRange();
+
+      this.saveSelectionToLocalStorage();
+    },
+    saveSelectionToLocalStorage() {
+      localStorage.setItem('viewType', this.viewType);
+      localStorage.setItem('selectedDate', this.selectedDate);
     },
     browse(direction) {
       if (this.viewType === 'month') {
@@ -218,6 +234,8 @@ export default {
         this.selectedDate.setDate(this.selectedDate.getDate() + (direction === 'next' ? 1 : -1));
       }
       this.selectedDate = new Date(this.selectedDate);
+
+      this.saveSelectionToLocalStorage();
       this.updateRange();
       this.fetchEvents();
     },
@@ -273,6 +291,12 @@ export default {
   display: flex;
   justify-content: space-between;
 
+}
+
+@media (max-width: 500px) {
+  .view-types {
+    min-width: 220px;
+  }
 }
 
 .grid-container {

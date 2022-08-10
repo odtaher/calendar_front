@@ -18,6 +18,7 @@
 .show-event-dialog {
   height: auto !important;
   width: auto !important;
+  min-width: 200px;
 
   .event-details {
     display: flex;
