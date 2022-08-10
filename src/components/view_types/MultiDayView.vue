@@ -8,7 +8,7 @@
       </div>
     </div>
     <div class="week-day" v-for="day in daysToShow" :key="day">
-      <div v-if="viewType==='week-view'"><span>{{ dayNames[day - 1] }} {{ $root.helper.shortDateByDay(selectedDate, day) }}</span></div>
+      <div v-if="viewType==='week-view'"><span>{{ dayNames[day] }} {{ $root.helper.shortDateByDay(selectedDate, day) }}</span></div>
       <time-block
           @move="move"
           @error="error"

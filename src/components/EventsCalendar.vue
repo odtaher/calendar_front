@@ -1,8 +1,8 @@
 <template>
   <div class="events-calendar">
 
-    <div class="error" v-show="error"></div>
-    <div class="green" v-if="message"></div>
+    <div :class="{error: true, 'message-area': true, 'shown': !!error}" v-show="error">{{ error }}</div>
+    <div :class="{success: true, 'message-area': true, 'shown': !!error}" v-show="message">{{ message }}</div>
 
     <navigation-header
         @prev="browse('prev')"
@@ -21,6 +21,26 @@
   </div>
 </template>
 <style>
+.message-area {
+  visibility: visible;
+  opacity: 0;
+  width: 100%;
+  padding: 12px 0;
+  font-size: 19px;
+  font-weight: bold;
+  background-color: #f1f3f4;
+  transition: opacity 0.9s linear;
+}
+
+.message-area.shown {
+  opacity: 1;
+  visibility: visible;
+}
+
+.message-area.success {
+  color: green;
+}
+
 .events-calendar {
   max-width: 1200px;
   margin: 0 auto;
@@ -92,11 +112,14 @@ export default {
       }).then(async response => {
         const jsonResponse = await response.json();
         if (!jsonResponse.ok) {
-          // @todo show error
+          this.showError(jsonResponse.error);
           return;
         }
-        // @todo show success message
+        this.showSuccess("Event updated");
         this.fetchEvents(true);
+      }, error => {
+        error;
+        this.showServerError();
       })
     },
     eventAdded(newEvent) {
@@ -129,6 +152,8 @@ export default {
         this.$refs.newEventDialog.close();
         this.fetchEvents();
 
+      }, () => {
+        this.showServerError();
       })
 
     },
@@ -153,12 +178,29 @@ export default {
     openNewEventDialog(event, date, time) {
       this.$refs.newEventDialog.open(event, date, time);
     },
+    showError(error) {
+      this.error = error;
+      this.hideMessages();
+    },
+    showServerError() {
+      this.showError("The server responded with an error");
+    },
+    showSuccess(message) {
+      this.message = message;
+      // this.hideMessages();
+    },
+    hideMessages() {
+      setTimeout(() => {
+        this.error = '';
+        this.message = '';
+      }, 3000);
+    },
     fetchEvents(clearEventsData = false) {
 
       const month = [
         this.selectedDate.getFullYear(),
         this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
-      ].join("-")
+      ].join("-");
 
       fetch(`${Config.api_host}/events?month=${month}`, {
         cache: clearEventsData ? "no-cache" : "force-cache"
@@ -190,8 +232,8 @@ export default {
         this.$forceUpdate();
 
 
-      }, error => {
-        this.flashErrors([error]);
+      }, () => {
+        this.showServerError();
       });
     },
     /**
