@@ -1,5 +1,5 @@
 <template>
-  <multi-day-view @move="move" view-type="week-view" :selected-date="selectedDate"></multi-day-view>
+  <multi-day-view @error="(err) => $emit('error', err)" @move="move" view-type="week-view" :selected-date="selectedDate"></multi-day-view>
 </template>
 
 <script>

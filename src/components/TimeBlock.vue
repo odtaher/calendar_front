@@ -74,7 +74,6 @@ export default {
 
       for (let thirtyMins = 0; thirtyMins <= calendarEvent.duration; thirtyMins += 30) {
 
-
         const date = [
           iterator.getFullYear(),
           this.$root.helper.intWithLeadingZero(iterator.getMonth() + 1),
@@ -82,11 +81,12 @@ export default {
         ].join("-");
 
         const time = [
-          this.$root.helper.intWithLeadingZero(iterator.getHours() + 1),
+          this.$root.helper.intWithLeadingZero(iterator.getHours()),
           this.$root.helper.intWithLeadingZero(iterator.getMinutes()),
         ].join(":");
 
-        if (this.$root.$refs.eventsCalendar.eventsData[date]?.get(time)) {
+        const overlappingEvent = this.$root.$refs.eventsCalendar.eventsData[date]?.get(time);
+        if (overlappingEvent && overlappingEvent._id !== calendarEvent._id) {
           return true;
         }
 
@@ -100,10 +100,8 @@ export default {
     eventDropped(event, destinationTimeData) {
       const source = this.$root.$refs.eventsCalendar.eventsData[event.dataTransfer.getData('date')]?.get(event.dataTransfer.getData('time'));
       this.beingDraggedOver = false;
-      if (this.calendarEvent || this.isOverlapping(source)) {
-        console.error("event is overlapping");
-
-        // @todo show error
+      if (this.isOverlapping(source)) {
+        this.$parent.$parent.$emit("error", 'Events are overlapping');
         return;
       }
 

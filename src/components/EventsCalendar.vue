@@ -1,6 +1,9 @@
 <template>
   <div class="events-calendar">
 
+    <div class="error" v-show="error"></div>
+    <div class="green" v-if="message"></div>
+
     <navigation-header
         @prev="browse('prev')"
         @next="browse('next')"
@@ -9,7 +12,7 @@
     </navigation-header>
 
     <month-view v-if="viewType==='month'" :selected-date="selectedDate"></month-view>
-    <week-view @move="eventMoved" ref="weekView" v-if="viewType==='week'" :selected-date="selectedDate"></week-view>
+    <week-view @error="(err) => this.error = err" @move="eventMoved" ref="weekView" v-if="viewType==='week'" :selected-date="selectedDate"></week-view>
     <day-view v-if="viewType==='day'" :selected-date="selectedDate"></day-view>
 
     <new-event-dialog @newEvent="eventAdded" ref="newEventDialog"></new-event-dialog>
@@ -148,13 +151,14 @@ export default {
 
       fetch(`${Config.api_host}/events?month=${month}`).then(async response => {
         if (!response.ok) {
-          this.flashErrors(response.errors);
+          this.showError(response.errors);
           return;
         }
 
         if (clearEventsData) {
           this.eventsData = {};
         }
+        this.eventsData = {};
 
         const jsonResponse = await response.json();
 
@@ -194,9 +198,6 @@ export default {
         const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.helper.intWithLeadingZero).join(":");
         this.eventsData[event.date].set(timeBlockStr, {...{hidden: true}, ...event});
       }
-    },
-    flashErrors(errors) {
-      errors;
     },
     updateRange() {
       this.fromDate = moment(this.selectedDate).startOf(this.viewType).toDate();
@@ -244,6 +245,8 @@ export default {
   },
   data() {
     return {
+      error: "",
+      message: "",
       eventsData: {},
       selectedDate: new Date(),
       viewType: "month",

@@ -11,6 +11,7 @@
       <div><span>{{ dayNames[day - 1] }} {{ $root.helper.shortDateByDay(selectedDate, day) }}</span></div>
       <time-block
           @move="move"
+          @error="error"
           :date="$root.helper.formatDayOfMonth(selectedDate, day)"
           :time="$root.helper.timeByIndex(timeIndex)"
           :calendar-event="$root.$refs.eventsCalendar.eventsData[$root.helper.formatDayOfMonth(selectedDate, day)]?.get($root.helper.timeByIndex(timeIndex))"
@@ -74,6 +75,7 @@ export default {
   name: 'week-view',
   props: {
     move: Function,
+    error: Function,
     viewType: String,
     selectedDate: Date,
   },
