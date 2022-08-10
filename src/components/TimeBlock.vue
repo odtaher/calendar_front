@@ -1,16 +1,28 @@
 <template>
-  <div :class="{'active': beingDraggedOver}" @dragleave.prevent="beingDraggedOver=false" @dragover.prevent="beingDraggedOver=true" @drop="eventDropped($event, {date:date, time:time})" class="time-block" v-show="calendarEvent === null || !calendarEvent.hidden">
+  <div :class="{'active': beingDraggedOver}" @dragleave.prevent="beingDraggedOver=false"
+       @dragover.prevent="beingDraggedOver=true" @drop="eventDropped($event, {date:date, time:time})"
+       class="time-block" v-show="calendarEvent === null || !calendarEvent.hidden">
     <button v-if="!calendarEvent" @click="(ev) => { $root.$refs.eventsCalendar.openNewEventDialog(ev, date, time)}"
             class="blue new-event">
       +
     </button>
-    <calendar-event @dragstart="eventDragged($event, calendarEvent)" draggable="true" ref="eventComponent" v-if="calendarEvent" :event-data="calendarEvent">
+    <calendar-event @dragstart="eventDragged($event, calendarEvent)" draggable="true" ref="eventComponent"
+                    v-if="calendarEvent" :event-data="calendarEvent">
     </calendar-event>
   </div>
 </template>
 
 <style lang="scss" scoped>
 @import "src/style/layout";
+@import "src/style/buttons";
+
+.time-block {
+  cursor: pointer;
+}
+
+.time-block.active {
+  background-color: $button-blue;
+}
 
 .time-block > button {
   visibility: hidden;
@@ -55,22 +67,60 @@ export default {
     this.updateBasis();
   },
   methods: {
-    eventDraggedOver(event, evenDate) {
 
-      console.info(event, evenDate)
-      // document.querySelectorAll(`time-block-${evenDate.date}${evenDate.time}`).forEach( timeBlock => {
-      //   timeBlock.classList
-      // })
+    isOverlapping(calendarEvent) {
+
+      const iterator = this.$root.helper.dateFromString(this.date, this.time);
+
+      for (let thirtyMins = 0; thirtyMins <= calendarEvent.duration; thirtyMins += 30) {
+
+
+        const date = [
+          iterator.getFullYear(),
+          this.$root.helper.intWithLeadingZero(iterator.getMonth() + 1),
+          this.$root.helper.intWithLeadingZero(iterator.getDate()),
+        ].join("-");
+
+        const time = [
+          this.$root.helper.intWithLeadingZero(iterator.getHours() + 1),
+          this.$root.helper.intWithLeadingZero(iterator.getMinutes()),
+        ].join(":");
+
+        if (this.$root.$refs.eventsCalendar.eventsData[date]?.get(time)) {
+          return true;
+        }
+
+        iterator.setMinutes(iterator.getMinutes() + 30);
+      }
+
+      return false;
+
     },
-    eventDropped(ev, destinationTimeBlock) {
+
+    eventDropped(event, destinationTimeData) {
+      const source = this.$root.$refs.eventsCalendar.eventsData[event.dataTransfer.getData('date')]?.get(event.dataTransfer.getData('time'));
+      this.beingDraggedOver = false;
+      if (this.calendarEvent || this.isOverlapping(source)) {
+        console.error("event is overlapping");
+
+        // @todo show error
+        return;
+      }
+
+
       // emitting to WeekView component, so we can use the callback in EventsCalendar component
-      this.$parent.$parent.$emit("move", ev.dataTransfer.getData('eventId'), destinationTimeBlock);
+      this.$parent.$parent.$emit("move", event.dataTransfer.getData('eventId'), destinationTimeData);
     },
-    eventDragged(ev, item) {
-      console.info("drag started", ev.target, item);
-      ev.dataTransfer.dropEffect = 'move';
-      ev.dataTransfer.effectAllowed = 'move';
-      ev.dataTransfer.setData('eventId', item._id);
+    eventDragged(event, item) {
+
+      this.beingDraggedOver = true;
+      event.dataTransfer.dropEffect = 'move';
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('eventId', item._id);
+      event.dataTransfer.setData('date', item.date);
+      event.dataTransfer.setData('time', item.time);
+      event.dataTransfer.setData('duration', item.duration);
+      console.info("dragged", item);
     },
     updateBasis() {
       if (this.calendarEvent) {
@@ -88,7 +138,6 @@ export default {
     }
   },
   props: {
-    debug: String,
     date: String,
     time: String,
     calendarEvent: {

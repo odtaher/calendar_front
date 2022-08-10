@@ -7,6 +7,7 @@ import moment from "moment";
 
 class Helper {
 
+
     /**
      * Converts an index (from 0 to 48) to 00:00 to 24:00
      * @param index number
@@ -47,7 +48,7 @@ class Helper {
         toDT.setMinutes(parseInt(toTime.split(":")[1]));
         toDT.setHours(parseInt(toTime.split(":")[0]));
 
-        return Math.floor((toDT.getTime() - fromDT.getTime())/1000/60);
+        return Math.floor((toDT.getTime() - fromDT.getTime()) / 1000 / 60);
     }
 
     /**
@@ -70,6 +71,14 @@ class Helper {
     shortDateByDay(sourceDate, day) {
         let date = moment(this.formatDayOfMonth(sourceDate, day)).toDate();
         return date.toLocaleDateString("he-il", {month: "numeric", day: "numeric"});
+    }
+
+
+    dateFromString(date, time) {
+        const dateSplits = date.split("-");
+        const timeSplits = time.split(":");
+
+        return new Date(dateSplits[0], parseInt(dateSplits[1]) - 1, dateSplits[2], timeSplits[0], timeSplits[1]);
     }
 }
 

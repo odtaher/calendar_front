@@ -52,10 +52,19 @@ export default {
   },
   methods: {
 
+    cleanGrid() {
+      // grid flex basis does not reset automatically, so we do it manually
+      document.querySelectorAll(".time-block").forEach( timeBlock => {
+        timeBlock.style.flexBasis = "40px";
+        timeBlock.classList.remove("active");
+      });
+    },
+
     eventMoved(eventId, destination) {
-      const dateSplits = destination.date.split("-");
-      const timeSplits = destination.time.split(":");
-      const destinationTime = new Date(dateSplits[0], parseInt(dateSplits[1]) - 1, dateSplits[2], timeSplits[0], timeSplits[1]);
+
+      const destinationTime = this.$root.helper.dateFromString(destination.date, destination.time);
+
+      this.$root.helper.dateFromString(destination.date, destination.time)
 
       const postDataStr = this.$root.helper.dictionaryToPostData({
         start: moment(destinationTime).format("YYYY-MM-DD HH:mm:00"),
@@ -159,10 +168,7 @@ export default {
 
           this.eventsData[event.date].set(timeBlockStr, event);
 
-          // grid flex basis does not reset automatically, so we do it manually
-          document.querySelectorAll(".time-block").forEach( timeBlock => {
-            timeBlock.style.flexBasis = "40px";
-          });
+          this.cleanGrid();
 
           this.fillTimeBlocksForLongEvents(start, event);
         });

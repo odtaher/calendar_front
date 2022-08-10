@@ -13,7 +13,6 @@
           @move="move"
           :date="$root.helper.formatDayOfMonth(selectedDate, day)"
           :time="$root.helper.timeByIndex(timeIndex)"
-          :debug="$root.$refs.eventsCalendar.eventsData[$root.helper.formatDayOfMonth(selectedDate, day)]?.get($root.helper.timeByIndex(timeIndex))"
           :calendar-event="$root.$refs.eventsCalendar.eventsData[$root.helper.formatDayOfMonth(selectedDate, day)]?.get($root.helper.timeByIndex(timeIndex))"
           v-for="timeIndex in 48" :key="timeIndex">
       </time-block>
