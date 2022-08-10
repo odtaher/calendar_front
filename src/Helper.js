@@ -30,7 +30,7 @@ class Helper {
      * @returns {*|string}
      */
     intWithLeadingZero(value) {
-        return value > "9" ? value : "0" + value;
+        return value > 9 ? value : "0" + value;
     }
 
     /**
