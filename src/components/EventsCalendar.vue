@@ -195,12 +195,39 @@ export default {
         this.message = '';
       }, 3000);
     },
-    fetchEvents(clearEventsData = false) {
 
-      const month = [
-        this.selectedDate.getFullYear(),
-        this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
-      ].join("-");
+    /**
+     *
+     * @param {bool} clearEventsData
+     * @param {string} month
+     */
+    fetchEvents(clearEventsData = false, month = null) {
+
+      if (!month && this.viewType === 'week') {
+        const startOfWeek = moment(this.selectedDate).startOf('week');
+        const endOfWeek = moment(this.selectedDate).endOf('week');
+        if (startOfWeek.month() !== endOfWeek.month()) {
+          this.fetchEvents(clearEventsData, [
+            this.selectedDate.getFullYear(),
+            this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth())
+          ].join("-"), clearEventsData);
+
+          // also fetch events from next month
+          this.fetchEvents(clearEventsData, [
+            this.selectedDate.getFullYear(),
+            this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
+          ].join("-"));
+
+          return;
+        }
+      }
+
+      if (!month) {
+        month = [
+          this.selectedDate.getFullYear(),
+          this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
+        ].join("-");
+      }
 
       fetch(`${Config.api_host}/events?month=${month}`, {
         cache: clearEventsData ? "no-cache" : "force-cache"
