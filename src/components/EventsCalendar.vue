@@ -150,7 +150,7 @@ export default {
         }
 
         this.$refs.newEventDialog.close();
-        this.fetchEvents();
+        this.fetchEvents(true);
 
       }, () => {
         this.showServerError();
