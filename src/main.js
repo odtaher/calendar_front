@@ -1,4 +1,14 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import {createApp} from 'vue';
+import App from './App.vue';
 
-createApp(App).mount('#app')
+import EventValidationMixin from '@/mixins/EventValidationMixin'
+import FormatsMixin from '@/mixins/FormatsMixin'
+import MobileBrowserMixin from '@/mixins/MobileBrowserMixin'
+
+const app = createApp(App);
+
+app.mixin(EventValidationMixin);
+app.mixin(MobileBrowserMixin);
+app.mixin(FormatsMixin);
+
+app.mount('#app');

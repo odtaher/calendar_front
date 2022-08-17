@@ -1,379 +1,330 @@
-<template>
-  <div class="events-calendar">
-
-    <div :class="{error: true, 'message-area': true, 'shown': !!error}" v-show="error">{{ error }}</div>
-    <div :class="{success: true, 'message-area': true, 'shown': !!error}" v-show="message">{{ message }}</div>
-
-    <navigation-header
-        @prev="browse('prev')"
-        @next="browse('next')"
-        @today="browseToToday"
-        ref="navigationHeader">
-    </navigation-header>
-
-    <month-view v-if="viewType==='month'" :selected-date="selectedDate"></month-view>
-    <week-view @error="(err) => this.error = err" @move="eventMoved" ref="weekView" v-if="viewType==='week'"
-               :selected-date="selectedDate"></week-view>
-    <day-view v-if="viewType==='day'" :selected-date="selectedDate"></day-view>
-
-    <new-event-dialog @newEvent="eventAdded" ref="newEventDialog"></new-event-dialog>
-    <event-dialog @deleteEvent="deleteEvent" ref="eventDialog"></event-dialog>
-  </div>
-</template>
-<style>
-.message-area {
-  visibility: visible;
-  opacity: 0;
-  width: 100%;
-  padding: 12px 0;
-  font-size: 19px;
-  font-weight: bold;
-  background-color: #f1f3f4;
-  transition: opacity 0.9s linear;
-}
-
-.message-area.shown {
-  opacity: 1;
-  visibility: visible;
-}
-
-.message-area.success {
-  color: green;
-}
-
-.events-calendar {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-</style>
 <script>
-import MonthView from "@/components/view_types/MonthView";
-import WeekView from "@/components/view_types/WeekView";
-import DayView from "@/components/view_types/DayView";
-import NavigationHeader from "@/components/NavigationHeader";
-import moment from "moment";
-import Config from '@/Config';
-import NewEventDialog from "@/components/NewEventDialog";
-import EventDialog from "@/components/EventDialog";
+import '@fullcalendar/core/vdom' // solves problem with Vite
+import FullCalendar from '@fullcalendar/vue3';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import EventFormPopover from '@/components/EventFormPopover';
+import {defineComponent} from "vue";
+import Api from "@/Api";
+import config from "@/Config";
+import moment from 'moment';
+import ErrorView from "@/components/ErrorView";
+import SuccessView from "@/components/SuccessView";
+import ListPlugin from '@fullcalendar/list';
 
-export default {
-  name: "events-calendar",
-  components: {MonthView, WeekView, DayView, NavigationHeader, NewEventDialog, EventDialog},
-  props: {
-    msg: String
+export default defineComponent({
+  components: {
+    FullCalendar,
+    EventFormPopover,
+    ErrorView,
+    SuccessView,
   },
   mounted() {
-    const storedViewType = localStorage.getItem('viewType');
-    if (storedViewType) {
-      this.viewType = storedViewType;
-    }
-    const selectedDate = localStorage.getItem('selectedDate');
-    if (selectedDate) {
-      this.selectedDate = new Date(selectedDate);
-    }
-    this.updateRange();
     this.fetchEvents();
-  },
-  watch: {
-    viewType() {
-      this.selectedDate = moment(this.selectedDate).startOf(this.viewType).toDate();
-
-      this.saveSelectionToLocalStorage();
-    },
-    selectedDate() {
-      this.updateRange();
-    },
   },
   methods: {
 
-    cleanGrid() {
-      // grid flex basis does not reset automatically, so we do it manually
-      document.querySelectorAll(".time-block").forEach(timeBlock => {
-        timeBlock.style.flexBasis = "40px";
-        timeBlock.classList.remove("active");
-      });
-    },
-
-    eventMoved(eventId, destination) {
-
-      const destinationTime = this.$root.helper.dateFromString(destination.date, destination.time);
-
-      this.$root.helper.dateFromString(destination.date, destination.time)
-
-      const postDataStr = this.$root.helper.dictionaryToPostData({
-        start: moment(destinationTime).format("YYYY-MM-DD HH:mm:00"),
-      });
-      fetch(`${Config.api_host}/events/${eventId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: postDataStr
-      }).then(async response => {
-        const jsonResponse = await response.json();
-        if (!jsonResponse.ok) {
-          this.showError(jsonResponse.error);
-          return;
-        }
-        this.showSuccess("Event updated");
-        this.fetchEvents(true);
-      }, error => {
-        error;
-        this.showServerError();
-      })
-    },
-    eventAdded(newEvent) {
-
-      let start = new Date(newEvent.date);
-
-      start.setHours(parseInt(newEvent.from_time.split(":")[0]));
-      start.setMinutes(parseInt(newEvent.from_time.split(":")[1]));
-
-      const postDataStr = this.$root.helper.dictionaryToPostData({
-        start: moment(start).format("YYYY-MM-DD HH:mm:00"),
-        description: newEvent.description,
-        duration: this.$root.helper.eventDuration(newEvent.from_time, newEvent.to_time)
-      });
-
-      fetch(`${Config.api_host}/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: postDataStr
-      }).then(async response => {
-        const jsonResponse = await response.json();
-        if (!jsonResponse.ok) {
-          this.$refs.newEventDialog.errors.server = jsonResponse.error;
-          this.$refs.newEventDialog.$forceUpdate();
-          return;
-        }
-
-        this.$refs.newEventDialog.close();
-        this.fetchEvents(true);
-
-      }, () => {
-        this.showServerError();
-      })
-
-    },
-    getProperDialogPosition(event) {
-      let pageX = event.pageX;
-      let pageY = event.pageY;
-      const dialogComponent = this.$refs.newEventDialog;
-      const dialogWidth = dialogComponent.clientWidth ? dialogComponent.clientWidth : 600;
-      const dialogHeight = dialogComponent.clientHeight ? dialogComponent.clientHeight : 420;
-      console.info(dialogWidth, dialogHeight);
-      if (pageX + dialogWidth > document.body.clientWidth) {
-        pageX = document.body.clientWidth - dialogWidth;
-      }
-      pageY += 10;
-      pageX += 10;
-      return {top: pageY, left: pageX};
-    },
-    openEventDialog(event, calendarEvent) {
-      console.info(this.$refs.eventDialog);
-      this.$refs.eventDialog.open(event, calendarEvent);
-    },
-    openNewEventDialog(event, date, time) {
-      this.$refs.newEventDialog.open(event, date, time);
-    },
-    showError(error) {
-      this.error = error;
-      this.hideMessages();
-    },
-    showServerError() {
-      this.showError("The server responded with an error");
-    },
-    showSuccess(message) {
+    flashSuccessMessage(message) {
       this.message = message;
-      // this.hideMessages();
-    },
-    hideMessages() {
       setTimeout(() => {
-        this.error = '';
-        this.message = '';
-      }, 3000);
+        this.message = "";
+      }, 5000);
     },
 
-    /**
-     *
-     * @param {bool} clearEventsData
-     * @param {string} month
-     */
-    fetchEvents(clearEventsData = false, month = null) {
+    flashErrors(errors) {
+      this.errors = errors;
+      setTimeout(() => {
+        this.errors = {};
+      }, 5000);
+    },
 
-      if (!month && this.viewType === 'week') {
-        const startOfWeek = moment(this.selectedDate).startOf('week');
-        const endOfWeek = moment(this.selectedDate).endOf('week');
-        if (startOfWeek.month() !== endOfWeek.month()) {
-          this.fetchEvents(clearEventsData, [
-            this.selectedDate.getFullYear(),
-            this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth())
-          ].join("-"), clearEventsData);
+    closePopover() {
+      this.$refs.eventFormPopover.$refs.popover.close();
+    },
 
-          // also fetch events from next month
-          this.fetchEvents(clearEventsData, [
-            this.selectedDate.getFullYear(),
-            this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
-          ].join("-"));
+    handleDateClick(dateClickInfo) {
+      this.closePopover();
 
-          return;
-        }
+      if (this.isMobileBrowser()) {
+        const evtDialogComp = this.$refs.eventFormPopover;
+        evtDialogComp.load(dateClickInfo.date, dateClickInfo.date);
+        evtDialogComp.allDay = dateClickInfo.allDay;
+        evtDialogComp.$refs.popover.open({});
       }
+      console.info('datelickc', dateClickInfo);
+    },
 
-      if (!month) {
-        month = [
-          this.selectedDate.getFullYear(),
-          this.$root.helper.intWithLeadingZero(this.selectedDate.getMonth() + 1)
-        ].join("-");
+    handleDateSet() {
+
+      window.localStorage.setItem("lastDate", this.calendarApi.getCurrentData().currentDate.toISOString());
+      window.localStorage.setItem("calendarView", this.calendarApi.view.type);
+      return () => {
       }
+    },
 
-      fetch(`${Config.api_host}/events?month=${month}`, {
-        cache: clearEventsData ? "no-cache" : "force-cache"
-      }).then(async response => {
-        if (!response.ok) {
-          this.showError(response.errors);
-          return;
-        }
+    handleEventAllow(dropInfo) {
 
-        this.eventsData = {};
+      return dropInfo.start > new Date()
+    },
+    handleSelectAllow(selectInfo) {
+      return selectInfo.start >= new Date();
+    },
+    handleEventDelete(eventId) {
+      this.api.delete(`events/${eventId}`)
+          .then(async response => {
+            const jsonResponse = await response.json();
+            if (!jsonResponse.ok) {
+              this.flashErrors(jsonResponse.errors);
+              console.error(jsonResponse.error);
+              return;
+            }
+            this.closePopover();
 
-        const jsonResponse = await response.json();
+            setTimeout(() => { // only to notice the event being deleted
+              this.fetchEvents();
+            }, 400);
 
-        jsonResponse.events.forEach(event => {
-          if (this.eventsData[event.date] === undefined) {
-            this.eventsData[event.date] = new Map();
-          }
-
-          const start = moment(event.start).toDate();
-          const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.helper.intWithLeadingZero).join(":");
-
-          this.eventsData[event.date].set(timeBlockStr, event);
-
-          this.cleanGrid();
-
-          this.fillTimeBlocksForLongEvents(start, event);
-        });
-
-        this.$forceUpdate();
+            this.flashSuccessMessage("Event deleted");
 
 
-      }, () => {
-        this.showServerError();
+          }, () => {
+            this.flashErrors(["Bad server response"]);
+          });
+    },
+
+    handleEventClick(calendarEvent) {
+      this.selectedEvent = calendarEvent.event;
+
+      const evtDialogComp = this.$refs.eventFormPopover;
+      evtDialogComp.load(calendarEvent.event.start, calendarEvent.event.end);
+      evtDialogComp.id = calendarEvent.event.id;
+      evtDialogComp.description = calendarEvent.event.title;
+      evtDialogComp.editingEvent = true;
+      evtDialogComp.$refs.popover.open({
+        x: calendarEvent.jsEvent.clientX,
+        y: calendarEvent.jsEvent.clientY,
       });
     },
-    /**
-     * for events that have a duration more than 30 minutes,
-     * the next time blocks will be also assigned to that event
-     * but hidden from the calendar
-     * @param start
-     * @param event
-     */
-    fillTimeBlocksForLongEvents(start, event) {
 
-      for (let timeBlock = 30; timeBlock < event.duration; timeBlock += 30) {
-        start.setMinutes(start.getMinutes() + timeBlock);
-        const timeBlockStr = [start.getHours(), start.getMinutes()].map(this.$root.helper.intWithLeadingZero).join(":");
-        this.eventsData[event.date].set(timeBlockStr, {...{hidden: true}, ...event});
-      }
-    },
-    updateRange() {
-      this.fromDate = moment(this.selectedDate).startOf(this.viewType).toDate();
-      this.toDate = moment(this.selectedDate).endOf(this.viewType).toDate();
-    },
-    browseToToday() {
-      this.selectedDate = new Date();
-      this.updateRange();
-
-      this.saveSelectionToLocalStorage();
-    },
-    saveSelectionToLocalStorage() {
-      localStorage.setItem('viewType', this.viewType);
-      localStorage.setItem('selectedDate', this.selectedDate);
-    },
-    browse(direction) {
-      if (this.viewType === 'month') {
-        this.selectedDate.setMonth(this.selectedDate.getMonth() + (direction === 'next' ? 1 : -1));
-      }
-      if (this.viewType === 'week') {
-        this.selectedDate.setDate(this.selectedDate.getDate() + (direction === 'next' ? 7 : -7));
-      }
-      if (this.viewType === 'day') {
-        this.selectedDate.setDate(this.selectedDate.getDate() + (direction === 'next' ? 1 : -1));
-      }
-      this.selectedDate = new Date(this.selectedDate);
-
-      this.saveSelectionToLocalStorage();
-      this.updateRange();
-      this.fetchEvents();
-    },
-    dateFormatForTitle(date) {
-      return date.toLocaleDateString("en-US", {
-        month: 'long',
-        day: 'numeric',
-      })
+    handleEventOverlap(stillEvent, movingEvent) {
+      // two all-day events can't happen at the same day
+      return stillEvent.allDay && movingEvent.allDay;
     },
 
-    deleteEvent(calendarEventId) {
-      fetch(`${Config.api_host}/events/${calendarEventId}`, {
-        method: 'DELETE',
-      }).then(async response => {
+    handleChange(calendarEvent) {
+
+      const evtData = {
+        start: new moment(calendarEvent.event.start).utc().format(this.formats.datetime),
+        end: new moment(calendarEvent.event.end).utc().format(this.formats.datetime),
+        description: calendarEvent.event.title,
+      };
+
+      if (!this.validateEvent(evtData)) {
+        return false;
+      }
+
+      delete evtData['id'];
+
+      console.info('change', calendarEvent.event);
+      this.status = 'loading';
+      this.api.update(`events/${calendarEvent.event.id}`, evtData).then(async response => {
         const jsonResponse = await response.json();
+        this.status = false;
         if (!jsonResponse.ok) {
-          // @todo show error
+          this.flashErrors(jsonResponse.errors);
+          console.error(jsonResponse.error);
           return;
         }
 
-        // @todo show success message
-        this.fetchEvents(true);
+        this.flashSuccessMessage("Event updated");
+
+      }, () => {
+        this.flashErrors(["Bad server response"]);
+      });
+    },
+
+    handleEventUpdate(eventData) {
+      console.info("updating", eventData, this.api);
+      this.status = "loading";
+      const eventId = eventData.id;
+      delete eventData['id'];
+      this.api.update(`events/${eventId}`, eventData).then(async response => {
+        const jsonResponse = await response.json();
+        console.info("response", jsonResponse);
+        this.status = false;
+        if (!jsonResponse.ok) {
+          this.flashErrors(jsonResponse.errors);
+          return;
+        }
+        this.flashSuccessMessage("Event updated");
+
+        this.closePopover();
+        this.fetchEvents();
+      }, () => {
+        this.flashErrors(["Bad server response"]);
+      });
+    },
+
+
+    handleEventCreate(eventData) {
+      console.info("adding", eventData, this.api);
+      this.status = "loading";
+
+      this.api.post("events", eventData).then(async response => {
+        const jsonResponse = await response.json();
+        console.info("response", jsonResponse);
+        this.status = false;
+        if (!jsonResponse.ok) {
+          this.flashErrors(jsonResponse.errors);
+          return;
+        }
+        this.closePopover();
+        this.$refs.eventFormPopover.reset();
+        this.fetchEvents();
+        this.flashSuccessMessage("Event created");
+
+      }, () => {
+        this.flashErrors(["Bad server response"]);
+      });
+    },
+
+    handleSelect(calendarEvent) {
+
+      this.closePopover();
+
+      this.selected = {
+        start: calendarEvent.start,
+        end: calendarEvent.end,
+      };
+
+      const evtDialogComp = this.$refs.eventFormPopover;
+      evtDialogComp.load(this.selected.start, this.selected.end);
+      evtDialogComp.allDay = calendarEvent.allDay;
+      evtDialogComp.$refs.popover.open({
+        x: calendarEvent.jsEvent.clientX,
+        y: calendarEvent.jsEvent.clientY,
+      });
+
+    },
+
+    fetchEvents() {
+      const range = this.calendarApi.getCurrentData().dateProfile.currentRange;
+
+      this.status = "loading";
+      this.api.get("events", {
+        start_date: moment(range.start).format(this.formats.date),
+        end_date: moment(range.end).format(this.formats.date)
       })
+          .then(async response => {
+            this.status = false;
+            const jsonResponse = await response.json();
+            this.calendarOptions.events = [];
+            jsonResponse.events.forEach(ev => {
+
+              this.calendarOptions.events.push({
+                id: ev._id,
+                title: ev.description,
+                start: new Date(ev.start),
+                end: new Date(ev.end),
+                allDay: ev.all_day
+              });
+
+            });
+
+
+          }, error => {
+            console.error(error);
+            // todo show error
+          });
+    },
+
+
+    handleEvents() {
+      this.closePopover();
+    },
+
+
+  },
+  computed: {
+    statusShown() {
+      return true;
+    },
+    calendarApi() {
+      return this.$refs.fullCalendar.getApi();
     }
   },
+  created() {
+    this.api = new Api(config.api_host);
+  },
   data() {
+
+    const calendarOptions = {
+      events: [],
+      plugins: [dayGridPlugin, interactionPlugin, timeGridPlugin, ListPlugin],
+      initialView: window.localStorage.getItem('calendarView') ? window.localStorage.getItem('calendarView') : 'dayGridMonth',
+      initialDate: window.localStorage.getItem('lastDate') ? new Date(window.localStorage.getItem('lastDate')) : new Date(),
+      weekends: true,
+      editable: true,
+      datesSet: this.handleDateSet,
+      eventAllow: this.handleEventAllow,
+      eventClick: this.handleEventClick,
+      eventDrop: this.handleChange,
+      eventResize: this.handleChange,
+      select: this.handleSelect,
+      eventOverlap: this.handleEventOverlap,
+      selectAllow: this.handleSelectAllow,
+      selectMirror: true,
+      selectable: true,
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+      }
+    };
+
+    // single selection is not available on mobile, a click on a date will toggle the event form popover
+    if (this.isMobileBrowser()) {
+      calendarOptions['dateClick'] =  this.handleDateClick;
+    }
+
     return {
-      error: "",
       message: "",
-      eventsData: {},
-      selectedDate: new Date(),
-      viewType: "month",
-      fromDate: null,
-      toDate: null,
+      selectedEvent: null,
+      errors: {},
+      selected: {start: null, end: null},
+      api: null,
+      events: [],
+      status: false,
+      calendarOptions: calendarOptions
     }
   }
-}
+});
 </script>
 
+<template>
+  <div class="container">
+    <div class="w-100" v-if="Object.keys(errors).length">
+      <error-view v-for="error in Object.values(errors)" :error="error" :key="error"></error-view>
+    </div>
+    <div
+        :class="{'w-100': true, 'transition':true, 'duration-300':true, 'opacity-100': message.length, 'opacity-0': !message.length}">
+      <success-view :message="message"></success-view>
+    </div>
+
+    <full-calendar ref="fullCalendar" :options="calendarOptions"></full-calendar>
+    <event-form-popover @event-delete="handleEventDelete" @event-create="handleEventCreate"
+                        @event-update="handleEventUpdate"
+                        ref="eventFormPopover"></event-form-popover>
+  </div>
+</template>
+
+
 <style lang="scss">
-.events-calendar > header {
-  margin-bottom: 12px;
-}
-
-.view-types, .nav-buttons {
-  button {
-    padding: 6px 12px;
+@media (max-width: 600px) {
+  .fc .fc-toolbar {
+    flex-direction: column;
   }
 }
-
-.view-types {
-  min-width: 300px;
-  display: flex;
-  justify-content: space-between;
-
-}
-
-@media (max-width: 500px) {
-  .view-types {
-    min-width: 220px;
-  }
-}
-
-.grid-container {
-  grid-row-gap: 0;
-  grid-column-gap: 0;
-  align-items: stretch;
-  display: grid;
-}
-
 
 </style>
