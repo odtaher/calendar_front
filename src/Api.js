@@ -44,7 +44,7 @@ class Api {
             // signal: signal
         });
 
-        this.controller = new AbortController();
+        // this.controller = new AbortController();
 
         return promise;
     }
