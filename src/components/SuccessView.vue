@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800" role="alert">
+  <div class="absolute w-full z-10 p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg transition-opacity transition-delay:400" role="alert">
     <span class="font-medium">{{message}}</span>
   </div>
 </template>

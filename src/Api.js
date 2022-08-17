@@ -1,24 +1,52 @@
+/**
+ * Api Class - a wrapper for fetch
+ *
+ * todos:
+ * - ability to abort previous requests
+ */
 class Api {
 
     apiUri;
     headers;
+    cached;
 
     constructor(apiUri) {
         this.apiUri = apiUri;
         this.prepareJsonHeader();
+        this.cached = {};
+        // this.controller = new AbortController();
     }
 
     /**
      *
      * @param path
      * @param getParams
+     * @param enableCaching
      * @returns {Promise<Response>}
      */
-    get(path, getParams = {}) {
+    get(path, getParams = {}, enableCaching = false) {
         this.prepareJsonHeader();
-        return fetch(this.fullUrl(path, getParams), {
-            headers: this.headers
+        let cache = "no-cache";
+        if (enableCaching && this.cached[this.fullUrl(path, getParams)]) {
+            cache = "force-cache";
+            this.cached[this.fullUrl(path, getParams)] = true;
+        }
+
+        // const signal = this.controller.signal;
+
+        // if (this.controller) {
+        //     this.controller.abort();
+        // }
+
+        const promise = fetch(this.fullUrl(path, getParams), {
+            headers: this.headers,
+            cache: cache,
+            // signal: signal
         });
+
+        this.controller = new AbortController();
+
+        return promise;
     }
 
     /**

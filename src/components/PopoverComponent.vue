@@ -77,7 +77,7 @@ export default defineComponent({
 
 <template>
   <div ref="popoverDiv"
-       :class="{'visible': isOpen, 'invisible': !isOpen, 'opacity-100': isOpen, 'opacity-0': !isOpen, 'transition-opacity': true, 'duration-300': true, popover: true, container:true, absolute:true, 'bg-grey-50': true, 'reuez-10': true}">
+       :class="{'visible': isOpen, 'invisible': !isOpen, 'opacity-100': isOpen, 'opacity-0': !isOpen, 'transition-opacity': true, 'duration-300': true, popover: true, container:true, absolute: true, 'bg-grey-50': true, 'reuez-10': true}">
     <div
         class="p-4 w-full max-w-sm bg-white rounded-lg border border-gray-200 shadow-md sm:p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700">
       <form class="space-y-3" action="#">

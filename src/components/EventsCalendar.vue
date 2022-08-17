@@ -20,16 +20,14 @@ export default defineComponent({
     ErrorView,
     SuccessView,
   },
-  mounted() {
-    this.fetchEvents();
-  },
   methods: {
 
     flashSuccessMessage(message) {
+
       this.message = message;
       setTimeout(() => {
         this.message = "";
-      }, 5000);
+      }, 3000);
     },
 
     flashErrors(errors) {
@@ -57,9 +55,16 @@ export default defineComponent({
 
     handleDateSet() {
 
+      if (window.localStorage.getItem("lastDate") !== this.calendarApi.getCurrentData().currentDate.toISOString()) {
+        this.fetchEvents(true);
+      }
+
       window.localStorage.setItem("lastDate", this.calendarApi.getCurrentData().currentDate.toISOString());
       window.localStorage.setItem("calendarView", this.calendarApi.view.type);
+
+
       return () => {
+
       }
     },
 
@@ -116,9 +121,15 @@ export default defineComponent({
 
       const evtData = {
         start: new moment(calendarEvent.event.start).utc().format(this.formats.datetime),
-        end: new moment(calendarEvent.event.end).utc().format(this.formats.datetime),
         description: calendarEvent.event.title,
+        all_day: calendarEvent.event.allDay
       };
+
+      if (calendarEvent.event.end) {
+        evtData['end'] = new moment(calendarEvent.event.end).utc().format(this.formats.datetime);
+      } else if (!calendarEvent.event.allDay) { // event moved from all-day to time specific
+        evtData['end'] = new moment(calendarEvent.event.start).add(30, 'minutes').utc().format(this.formats.datetime); // event moved from all
+      }
 
       if (!this.validateEvent(evtData)) {
         return false;
@@ -126,8 +137,7 @@ export default defineComponent({
 
       delete evtData['id'];
 
-      console.info('change', calendarEvent.event);
-      this.status = 'loading';
+
       this.api.update(`events/${calendarEvent.event.id}`, evtData).then(async response => {
         const jsonResponse = await response.json();
         this.status = false;
@@ -208,14 +218,14 @@ export default defineComponent({
 
     },
 
-    fetchEvents() {
+    fetchEvents(enableCaching = false) {
       const range = this.calendarApi.getCurrentData().dateProfile.currentRange;
 
       this.status = "loading";
       this.api.get("events", {
-        start_date: moment(range.start).format(this.formats.date),
-        end_date: moment(range.end).format(this.formats.date)
-      })
+        start_date: moment(range.start).startOf('month').format(this.formats.date),
+        end_date: moment(range.end).endOf('month').format(this.formats.date)
+      }, enableCaching)
           .then(async response => {
             this.status = false;
             const jsonResponse = await response.json();
@@ -260,7 +270,9 @@ export default defineComponent({
   data() {
 
     const calendarOptions = {
+      currentRequest: null,
       events: [],
+      currentDate: null,
       plugins: [dayGridPlugin, interactionPlugin, timeGridPlugin, ListPlugin],
       initialView: window.localStorage.getItem('calendarView') ? window.localStorage.getItem('calendarView') : 'dayGridMonth',
       initialDate: window.localStorage.getItem('lastDate') ? new Date(window.localStorage.getItem('lastDate')) : new Date(),
@@ -285,7 +297,7 @@ export default defineComponent({
 
     // single selection is not available on mobile, a click on a date will toggle the event form popover
     if (this.isMobileBrowser()) {
-      calendarOptions['dateClick'] =  this.handleDateClick;
+      calendarOptions['dateClick'] = this.handleDateClick;
     }
 
     return {
@@ -321,6 +333,10 @@ export default defineComponent({
 
 
 <style lang="scss">
+.fc {
+  padding-top: 4rem;
+}
+
 @media (max-width: 600px) {
   .fc .fc-toolbar {
     flex-direction: column;
