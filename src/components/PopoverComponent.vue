@@ -32,6 +32,9 @@ export default defineComponent({
     },
 
     open(mousePosition) {
+
+      console.info("mouse position", mousePosition);
+
       this.isOpen = true;
       let left = 0;
       let top = 0;
@@ -39,7 +42,7 @@ export default defineComponent({
 
       if (window.innerWidth > 400 && window.innerHeight > 500) {
 
-        const popoverHeight = mainElement.clientHeight === 0 ? 400 : mainElement.clientHeight;
+        const popoverHeight = mainElement.clientHeight === 0 ? 500 : mainElement.clientHeight;
         const popoverWidth = mainElement.clientWidth === 0 ? 300 : mainElement.clientWidth;
 
         top = mousePosition.y;

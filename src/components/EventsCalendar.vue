@@ -107,8 +107,8 @@ export default defineComponent({
       evtDialogComp.description = calendarEvent.event.title;
       evtDialogComp.editingEvent = true;
       evtDialogComp.$refs.popover.open({
-        x: calendarEvent.jsEvent.clientX,
-        y: calendarEvent.jsEvent.clientY,
+        x: calendarEvent.jsEvent.pageX,
+        y: calendarEvent.jsEvent.pageY,
       });
     },
 
@@ -212,8 +212,8 @@ export default defineComponent({
       evtDialogComp.load(this.selected.start, this.selected.end);
       evtDialogComp.allDay = calendarEvent.allDay;
       evtDialogComp.$refs.popover.open({
-        x: calendarEvent.jsEvent.clientX,
-        y: calendarEvent.jsEvent.clientY,
+        x: calendarEvent.jsEvent.pageX,
+        y: calendarEvent.jsEvent.pageY,
       });
 
     },
