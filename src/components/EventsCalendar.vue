@@ -69,7 +69,7 @@ export default defineComponent({
     },
 
     handleEventAllow(dropInfo) {
-      console.info("dropInfo", dropInfo);
+      // console.info("dropInfo", dropInfo);
 
       return dropInfo.start > new Date()
     },
@@ -113,8 +113,21 @@ export default defineComponent({
     },
 
     handleEventOverlap(stillEvent, movingEvent) {
+      stillEvent; movingEvent;
       // two all-day events can't happen at the same day
-      return !(stillEvent.allDay && movingEvent.allDay);
+      if (stillEvent.allDay && movingEvent.allDay) {
+        return false;
+      }
+
+      if (stillEvent.allDay) {
+        return true;
+      }
+
+      if (movingEvent.start.getTime() < stillEvent.end.getTime() && movingEvent.end.getTime() > stillEvent.start.getTime()) {
+        return false;
+      }
+
+      return true;
     },
 
     handleChange(calendarEvent) {
