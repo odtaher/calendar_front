@@ -123,6 +123,10 @@ export default defineComponent({
         return true;
       }
 
+      if (movingEvent.allDay) {
+        return true;
+      }
+
       if (movingEvent.start.getTime() < stillEvent.end.getTime() && movingEvent.end.getTime() > stillEvent.start.getTime()) {
         return false;
       }
