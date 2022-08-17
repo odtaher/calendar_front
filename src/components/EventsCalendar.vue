@@ -69,6 +69,7 @@ export default defineComponent({
     },
 
     handleEventAllow(dropInfo) {
+      console.info("dropInfo", dropInfo);
 
       return dropInfo.start > new Date()
     },
@@ -81,7 +82,6 @@ export default defineComponent({
             const jsonResponse = await response.json();
             if (!jsonResponse.ok) {
               this.flashErrors(jsonResponse.errors);
-              console.error(jsonResponse.error);
               return;
             }
             this.closePopover();
@@ -114,7 +114,7 @@ export default defineComponent({
 
     handleEventOverlap(stillEvent, movingEvent) {
       // two all-day events can't happen at the same day
-      return stillEvent.allDay && movingEvent.allDay;
+      return !(stillEvent.allDay && movingEvent.allDay);
     },
 
     handleChange(calendarEvent) {
@@ -243,9 +243,9 @@ export default defineComponent({
             });
 
 
-          }, error => {
-            console.error(error);
-            // todo show error
+          }, () => {
+            this.flashErrors(["Bad server response"]);
+
           });
     },
 
