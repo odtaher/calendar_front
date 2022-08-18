@@ -23,12 +23,8 @@ export default {
                 return true;
             }
 
-            if (stillEvent.allDay) {
-                return true;
-            }
-
-            if (movingEvent.allDay) {
-                return true;
+            if (stillEvent.allDay || movingEvent.allDay) {
+                return false;
             }
 
             if (movingEvent.start.getTime() < stillEvent.end?.getTime() && movingEvent.end?.getTime() > stillEvent.start.getTime()) {

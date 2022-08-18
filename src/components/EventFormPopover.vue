@@ -56,10 +56,8 @@ export default defineComponent({
 
       if (this.validateEvent(newEvt)) {
 
-        console.info('newEvt', newEvt['start']);
         newEvt['start'] = new moment(this.start).utc().format(this.formats.datetime)
         newEvt['end'] = new moment(this.end).utc().format(this.formats.datetime)
-        console.info('newEvt', newEvt['start']);
 
         this.$emit(emitVal, newEvt);
       }

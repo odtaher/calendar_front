@@ -87,9 +87,8 @@ export default defineComponent({
             }
             this.closePopover();
 
-            setTimeout(() => { // only to notice the event being deleted
-              this.fetchEvents();
-            }, 400);
+            const calendarEvent = this.calendarApi.getEventById(eventId);
+            calendarEvent.remove();
 
             this.flashSuccessMessage("Event deleted");
 
@@ -145,6 +144,9 @@ export default defineComponent({
           return;
         }
 
+        calendarEvent.setDates(evtData.start, evtData.end, {allDay: evtData.all_day});
+        calendarEvent.title = evtData.description;
+
         this.flashSuccessMessage("Event updated");
 
       }, () => {
@@ -154,9 +156,6 @@ export default defineComponent({
 
 
     handleEventUpdate(eventData) {
-
-      const eventInCalendar = this.calendarApi.getEventById(eventData.id);
-      eventInCalendar.setDates(new Date(eventData.start), new Date(eventData.end));
 
       const eventId = eventData.id;
       delete eventData['id'];
@@ -168,6 +167,14 @@ export default defineComponent({
           return;
         }
         this.flashSuccessMessage("Event updated");
+
+        const calendarEvent = this.calendarApi.getEventById(eventId);
+
+        calendarEvent.setDates(
+            moment(eventData.start).toDate(),
+            moment(eventData.end).toDate(),
+            {allDay: eventData.all_day}
+        );
 
         this.closePopover();
         this.fetchEvents();
@@ -188,7 +195,9 @@ export default defineComponent({
         }
         this.closePopover();
         this.$refs.eventFormPopover.reset();
+
         this.fetchEvents();
+
         this.flashSuccessMessage("Event created");
 
       }, () => {
