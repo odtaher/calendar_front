@@ -14,7 +14,6 @@ export default defineComponent({
   methods: {
     handleOuterClick(ev) {
       ev.preventDefault();
-      ev.stopPropagation();
       console.info("handleOuterClick");
       let target = ev.target;
       while (target) {
@@ -32,8 +31,6 @@ export default defineComponent({
     },
 
     open(mousePosition) {
-
-      console.info("mouse position", mousePosition);
 
       this.isOpen = true;
       let left = 0;
@@ -60,7 +57,6 @@ export default defineComponent({
 
       mainElement.style.top = top + "px";
       mainElement.style.left = left + "px";
-
 
       this.removeOuterClickHandler();
 

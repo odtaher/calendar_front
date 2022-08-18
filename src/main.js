@@ -10,5 +10,12 @@ const app = createApp(App);
 app.mixin(EventValidationMixin);
 app.mixin(MobileBrowserMixin);
 app.mixin(FormatsMixin);
+app.mixin({
+    computed: {
+        calendarApi() {
+            return this.$root.$refs.eventsCalendar.$refs.fullCalendar.getApi();
+        }
+    }
+})
 
 app.mount('#app');

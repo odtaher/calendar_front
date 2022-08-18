@@ -41,25 +41,35 @@ export default defineComponent({
         start: this.start,
         end: this.end,
       };
+
+      let emitVal = 'event-create';
+
+      if (this.id) {
+        newEvt['id'] = this.id;
+        emitVal = 'event-update';
+      }
+
+      if (this.overlappingWithNearbyEvents(newEvt)) {
+        this.errors.description = "Overlapping events are not allowed";
+        return;
+      }
+
       if (this.validateEvent(newEvt)) {
 
+        console.info('newEvt', newEvt['start']);
         newEvt['start'] = new moment(this.start).utc().format(this.formats.datetime)
         newEvt['end'] = new moment(this.end).utc().format(this.formats.datetime)
+        console.info('newEvt', newEvt['start']);
 
-        if (this.id) {
-          newEvt['id'] = this.id;
-          this.$emit("event-update", newEvt);
-        } else {
-          this.$emit("event-create", newEvt);
-        }
+        this.$emit(emitVal, newEvt);
       }
     },
 
     load(startDateTime, endDateTime) {
       this.startDate = startDateTime;
       this.endDate = endDateTime;
-      this.startTime = moment(startDateTime).format("hh:mm");
-      this.endTime = moment(endDateTime).format("hh:mm");
+      this.startTime = moment(startDateTime).format("HH:mm");
+      this.endTime = moment(endDateTime).format("HH:mm");
 
       this.startDate.setHours(0);
       this.startDate.setMinutes(0);
@@ -121,7 +131,6 @@ export default defineComponent({
       description: '',
       editingEvent: null,
       dialogOpen: false,
-      calendarApi: null,
       id: false
     }
   }

@@ -3,7 +3,7 @@ export default {
         return {
             formats: {
                 date: "YYYY-MM-DD",
-                datetime: "YYYY-MM-DD hh:mm:ss",
+                datetime: "YYYY-MM-DD HH:mm:ss",
             },
         }
     }

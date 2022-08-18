@@ -1,6 +1,6 @@
 <template>
   <div class="container m-auto">
-    <events-calendar></events-calendar>
+    <events-calendar ref="eventsCalendar"></events-calendar>
   </div>
 </template>
 
