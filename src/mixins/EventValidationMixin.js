@@ -23,7 +23,7 @@ export default {
                 return true;
             }
 
-            if (stillEvent.allDay || movingEvent.allDay) {
+            if (stillEvent.allDay) {
                 return false;
             }
 
