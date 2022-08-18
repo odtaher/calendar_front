@@ -17,27 +17,27 @@ export default {
             return allEventsOrdered.slice(0, 2);
         },
 
-        eventOverlappingWith(stillEvent, movingEvent) {
+        eventNotOverlappingWith(stillEvent, movingEvent) {
             // two all-day events can't happen at the same day
             if (stillEvent.allDay && movingEvent.allDay) {
-                return true;
-            }
-
-            if (stillEvent.allDay) {
                 return false;
             }
 
-            if (movingEvent.start.getTime() < stillEvent.end?.getTime() && movingEvent.end?.getTime() > stillEvent.start.getTime()) {
+            if (stillEvent.allDay || movingEvent.allDay) {
                 return true;
             }
 
-            return false;
+            if (movingEvent.start.getTime() < stillEvent.end?.getTime() && movingEvent.end?.getTime() > stillEvent.start.getTime()) {
+                return false;
+            }
+
+            return true;
         },
 
         overlappingWithNearbyEvents(eventData) {
 
             for (let nearbyEvent of this.getNearbyEvents(eventData)) {
-                if (this.eventOverlappingWith(nearbyEvent, {
+                if (!this.eventNotOverlappingWith(nearbyEvent, {
                     start: moment(eventData.start).toDate(),
                     end: moment(eventData.end).toDate(),
                     id: eventData.id,

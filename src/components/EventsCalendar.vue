@@ -289,7 +289,7 @@ export default defineComponent({
       eventDrop: this.handleChange,
       eventResize: this.handleChange,
       select: this.handleSelect,
-      eventOverlap: !this.eventOverlappingWith,
+      eventOverlap: this.eventNotOverlappingWith,
       selectAllow: this.handleSelectAllow,
       selectMirror: true,
       selectable: true,
