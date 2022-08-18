@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="container m-auto">
     <events-calendar></events-calendar>
   </div>
 </template>
