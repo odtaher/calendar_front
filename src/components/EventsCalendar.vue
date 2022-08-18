@@ -48,6 +48,7 @@ export default defineComponent({
         const evtDialogComp = this.$refs.eventFormPopover;
         evtDialogComp.load(dateClickInfo.date, dateClickInfo.date);
         evtDialogComp.allDay = dateClickInfo.allDay;
+        this.$refs.eventFormPopover.errors = {};
         evtDialogComp.$refs.popover.open({});
       }
       console.info('datelickc', dateClickInfo);
@@ -106,33 +107,13 @@ export default defineComponent({
       evtDialogComp.id = calendarEvent.event.id;
       evtDialogComp.description = calendarEvent.event.title;
       evtDialogComp.editingEvent = true;
+      this.$refs.eventFormPopover.errors = {};
       evtDialogComp.$refs.popover.open({
         x: calendarEvent.jsEvent.pageX,
         y: calendarEvent.jsEvent.pageY,
       });
     },
 
-    handleEventOverlap(stillEvent, movingEvent) {
-      stillEvent; movingEvent;
-      // two all-day events can't happen at the same day
-      if (stillEvent.allDay && movingEvent.allDay) {
-        return false;
-      }
-
-      if (stillEvent.allDay) {
-        return true;
-      }
-
-      if (movingEvent.allDay) {
-        return true;
-      }
-
-      if (movingEvent.start.getTime() < stillEvent.end.getTime() && movingEvent.end.getTime() > stillEvent.start.getTime()) {
-        return false;
-      }
-
-      return true;
-    },
 
     handleChange(calendarEvent) {
 
@@ -171,15 +152,17 @@ export default defineComponent({
       });
     },
 
+
     handleEventUpdate(eventData) {
-      console.info("updating", eventData, this.api);
-      this.status = "loading";
+
+      const eventInCalendar = this.calendarApi.getEventById(eventData.id);
+      eventInCalendar.setDates(new Date(eventData.start), new Date(eventData.end));
+
       const eventId = eventData.id;
       delete eventData['id'];
       this.api.update(`events/${eventId}`, eventData).then(async response => {
         const jsonResponse = await response.json();
-        console.info("response", jsonResponse);
-        this.status = false;
+
         if (!jsonResponse.ok) {
           this.flashErrors(jsonResponse.errors);
           return;
@@ -195,12 +178,9 @@ export default defineComponent({
 
 
     handleEventCreate(eventData) {
-      console.info("adding", eventData, this.api);
-      this.status = "loading";
 
       this.api.post("events", eventData).then(async response => {
         const jsonResponse = await response.json();
-        console.info("response", jsonResponse);
         this.status = false;
         if (!jsonResponse.ok) {
           this.flashErrors(jsonResponse.errors);
@@ -228,6 +208,7 @@ export default defineComponent({
       const evtDialogComp = this.$refs.eventFormPopover;
       evtDialogComp.load(this.selected.start, this.selected.end);
       evtDialogComp.allDay = calendarEvent.allDay;
+      this.$refs.eventFormPopover.errors = {};
       evtDialogComp.$refs.popover.open({
         x: calendarEvent.jsEvent.pageX,
         y: calendarEvent.jsEvent.pageY,
@@ -252,8 +233,8 @@ export default defineComponent({
               this.calendarOptions.events.push({
                 id: ev._id,
                 title: ev.description,
-                start: new Date(ev.start),
-                end: new Date(ev.end),
+                start: moment(ev.start).toDate(),
+                end: moment(ev.end).toDate(),
                 allDay: ev.all_day
               });
 
@@ -277,9 +258,7 @@ export default defineComponent({
     statusShown() {
       return true;
     },
-    calendarApi() {
-      return this.$refs.fullCalendar.getApi();
-    }
+
   },
   created() {
     this.api = new Api(config.api_host);
@@ -301,7 +280,7 @@ export default defineComponent({
       eventDrop: this.handleChange,
       eventResize: this.handleChange,
       select: this.handleSelect,
-      eventOverlap: this.handleEventOverlap,
+      eventOverlap: !this.eventOverlappingWith,
       selectAllow: this.handleSelectAllow,
       selectMirror: true,
       selectable: true,
